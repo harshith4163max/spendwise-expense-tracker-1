@@ -1,11 +1,12 @@
 from pathlib import Path
 import os
+import dj_database_url   # ✅ ADD THIS
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-expense-tracker-secret-key-change-in-production'
 
-DEBUG = True
+DEBUG = True  # ⚠️ later set to False in production
 
 ALLOWED_HOSTS = ["*"]
 
@@ -49,10 +50,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'expense_tracker.wsgi.application'
 
+# ✅ DATABASE CONFIG (RENDER POSTGRES FIX)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'expense_db_r965',
+        'USER': 'expense_db_r965_user',
+        'PASSWORD': 'HlSLkcSgPxz9hUppOCTUqLaPN95QgDaW',
+        'HOST': 'dpg-d8t5dhjeo5us73dbs0k0-a.oregon-postgres.render.com',
+        'PORT': '5432',
     }
 }
 
@@ -77,7 +83,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/'
+
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'noreply@spendwise.local'
-# Expire sessions when the browser is closed to avoid automatic login
+
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
