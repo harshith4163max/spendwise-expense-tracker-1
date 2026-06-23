@@ -1,0 +1,194 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Profile — SpendWise{% endblock %}
+{% block page_title %}Profile{% endblock %}
+
+{% block extra_head %}
+<style>
+.profile-hero {
+  background: linear-gradient(135deg, rgba(200,241,53,0.08) 0%, rgba(167,139,250,0.06) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.profile-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%; right: -10%;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(200,241,53,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.profile-avatar-big {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; font-weight: 800; color: #0A0C10;
+  flex-shrink: 0;
+  border: 3px solid rgba(200,241,53,0.3);
+  overflow: hidden;
+}
+.profile-avatar-big img { width: 100%; height: 100%; object-fit: cover; }
+.stat-mini { text-align: center; }
+.stat-mini-val { font-family: 'DM Mono', monospace; font-size: 1.6rem; font-weight: 500; color: var(--accent); }
+.stat-mini-label { font-size: 0.75rem; color: var(--text3); margin-top: 4px; }
+.section-divider { display: flex; align-items: center; gap: 12px; margin: 8px 0 16px; }
+.section-divider-line { flex: 1; height: 1px; background: var(--border); }
+.section-divider-text { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Profile Hero -->
+<div class="profile-hero">
+  <div class="profile-avatar-big">
+    {% if profile.avatar %}
+      <img src="{{ profile.avatar.url }}" alt="">
+    {% else %}
+      {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
+    {% endif %}
+  </div>
+  <div style="flex:1;">
+    <div style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;">
+      {{ request.user.get_full_name|default:request.user.username }}
+    </div>
+    <div style="color:var(--text3);margin-top:4px;font-size:0.875rem;">@{{ request.user.username }}</div>
+    {% if profile.bio %}
+    <div style="color:var(--text2);margin-top:10px;font-size:0.875rem;max-width:500px;">{{ profile.bio }}</div>
+    {% endif %}
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+      {% if request.user.email %}
+      <span style="background:var(--bg3);border:1px solid var(--border2);padding:4px 12px;border-radius:20px;font-size:0.78rem;color:var(--text2);">
+        📧 {{ request.user.email }}
+      </span>
+      {% endif %}
+      {% if profile.phone %}
+      <span style="background:var(--bg3);border:1px solid var(--border2);padding:4px 12px;border-radius:20px;font-size:0.78rem;color:var(--text2);">
+        📱 {{ profile.phone }}
+      </span>
+      {% endif %}
+      <span style="background:rgba(200,241,53,0.1);border:1px solid rgba(200,241,53,0.2);padding:4px 12px;border-radius:20px;font-size:0.78rem;color:var(--accent);">
+        💰 Budget: {{ profile.currency }}{{ profile.monthly_budget|floatformat:0 }}/mo
+      </span>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:32px;flex-shrink:0;">
+    <div class="stat-mini">
+      <div class="stat-mini-val">{{ stats.total_transactions }}</div>
+      <div class="stat-mini-label">Transactions</div>
+    </div>
+    <div class="stat-mini">
+      <div class="stat-mini-val">{{ stats.categories }}</div>
+      <div class="stat-mini-label">Categories</div>
+    </div>
+    <div class="stat-mini">
+      <div class="stat-mini-val">{{ stats.savings_goals }}</div>
+      <div class="stat-mini-label">Goals</div>
+    </div>
+    <div class="stat-mini">
+      <div class="stat-mini-val">{{ stats.this_month }}</div>
+      <div class="stat-mini-label">This Month</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- Edit Profile -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Edit Profile</div>
+    </div>
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">Personal Info</div><div class="section-divider-line"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          <input type="text" name="first_name" class="form-input" value="{{ request.user.first_name }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          <input type="text" name="last_name" class="form-input" value="{{ request.user.last_name }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="form-input" value="{{ request.user.email }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        {{ form.phone }}
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bio</label>
+        {{ form.bio }}
+      </div>
+      <div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">Preferences</div><div class="section-divider-line"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="form-group">
+          <label class="form-label">Currency Symbol</label>
+          {{ form.currency }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Monthly Budget</label>
+          {{ form.monthly_budget }}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Profile Photo</label>
+        {{ form.avatar }}
+      </div>
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+  </div>
+
+  <!-- Quick Actions & Info -->
+  <div style="display:flex;flex-direction:column;gap:20px;">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px;">Quick Actions</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="{% url 'add_transaction' %}" class="btn btn-primary">＋ Add Transaction</a>
+        <a href="{% url 'analytics' %}" class="btn btn-ghost">📈 View Analytics</a>
+        <a href="{% url 'budgets' %}" class="btn btn-ghost">🎯 Manage Budgets</a>
+        <a href="{% url 'savings' %}" class="btn btn-ghost">💎 Savings Goals</a>
+        <a href="{% url 'categories' %}" class="btn btn-ghost">⊞ Categories</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px;">Account Details</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
+          <span style="color:var(--text3);">Username</span>
+          <span style="font-family:'DM Mono',monospace;">{{ request.user.username }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
+          <span style="color:var(--text3);">Member since</span>
+          <span>{{ request.user.date_joined|date:"M Y" }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
+          <span style="color:var(--text3);">Currency</span>
+          <span>{{ profile.currency }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
+          <span style="color:var(--text3);">Monthly Budget</span>
+          <span style="font-family:'DM Mono',monospace;color:var(--accent);">{{ profile.currency }}{{ profile.monthly_budget|floatformat:0 }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="background:rgba(255,107,107,0.05);border-color:rgba(255,107,107,0.15);">
+      <div class="card-title" style="margin-bottom:12px;color:var(--red);">Danger Zone</div>
+      <p style="font-size:0.82rem;color:var(--text3);margin-bottom:12px;">Signing out will end your current session.</p>
+      <a href="{% url 'logout' %}" class="btn btn-danger">Sign Out</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

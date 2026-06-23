@@ -1,0 +1,51 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Categories — SpendWise{% endblock %}
+{% block page_title %}Categories{% endblock %}
+{% block content %}
+<div class="grid-2">
+  <!-- Add Category -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">New Category</div></div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group"><label class="form-label">Name</label>{{ form.name }}{% for e in form.name.errors %}<div style="color:var(--red);font-size:0.78rem;">{{ e }}</div>{% endfor %}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="form-group"><label class="form-label">Icon (Emoji)</label>{{ form.icon }}</div>
+        <div class="form-group"><label class="form-label">Color</label>{{ form.color }}</div>
+      </div>
+      <div class="form-group"><label class="form-label">Type</label>{{ form.type }}</div>
+      <button type="submit" class="btn btn-primary">Create Category</button>
+    </form>
+  </div>
+
+  <!-- Category List -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:20px 24px 0;"><div class="card-title">Your Categories</div></div>
+    <table class="table" style="margin-top:8px;">
+      <thead><tr><th>Category</th><th>Type</th><th>Transactions</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for cat in categories %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:34px;height:34px;border-radius:9px;background:{{ cat.color }}22;display:flex;align-items:center;justify-content:center;font-size:1rem;">{{ cat.icon }}</div>
+              <div style="font-weight:500;">{{ cat.name }}</div>
+            </div>
+          </td>
+          <td><span class="badge badge-{{ cat.type }}">{{ cat.type }}</span></td>
+          <td style="font-family:'DM Mono',monospace;color:var(--text3);">{{ cat.transaction_count }}</td>
+          <td>
+            <form method="post" action="{% url 'delete_category' cat.pk %}" onsubmit="return confirm('Delete category?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text3);">No categories yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

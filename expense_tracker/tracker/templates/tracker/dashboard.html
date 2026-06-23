@@ -1,0 +1,263 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Dashboard — SpendWise{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 380px;
+  gap: 20px;
+}
+.chart-bar-container { display: flex; flex-direction: column; gap: 6px; }
+.chart-bar-row { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; }
+.chart-bar-label { width: 36px; color: var(--text3); text-align: right; flex-shrink: 0; }
+.chart-bar-track { flex: 1; height: 28px; background: var(--bg3); border-radius: 6px; overflow: hidden; position: relative; }
+.chart-bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding: 0 8px; font-family: 'DM Mono', monospace; font-size: 0.7rem; white-space: nowrap; min-width: 4px; }
+.cat-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.cat-row:last-child { border-bottom: none; }
+.cat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.cat-name { flex: 1; font-size: 0.85rem; }
+.cat-bar { flex: 2; }
+.cat-amount { font-family: 'DM Mono', monospace; font-size: 0.82rem; color: var(--red); }
+.txn-list { display: flex; flex-direction: column; gap: 2px; }
+.txn-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 10px;
+  transition: background 0.15s;
+}
+.txn-row:hover { background: var(--bg3); }
+.txn-details { flex: 1; min-width: 0; }
+.txn-title { font-size: 0.875rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.txn-meta { font-size: 0.75rem; color: var(--text3); margin-top: 2px; }
+.budget-item { margin-bottom: 16px; }
+.budget-header { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 6px; }
+.budget-cat { display: flex; align-items: center; gap: 6px; }
+.budget-pct { font-family: 'DM Mono', monospace; }
+.savings-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.savings-item:last-child { border-bottom: none; }
+.savings-icon { width: 38px; height: 38px; border-radius: 10px; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+.savings-info { flex: 1; }
+.savings-title { font-size: 0.875rem; font-weight: 500; }
+.savings-amount { font-size: 0.75rem; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+.savings-pct { font-family: 'DM Mono', monospace; font-size: 0.82rem; color: var(--accent); }
+@media(max-width:1200px){.dashboard-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:768px){.dashboard-grid{grid-template-columns:1fr;}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:24px;">
+  <div style="color:var(--text3);font-size:0.85rem;">{{ month_name }}</div>
+  <div style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;margin-top:2px;">
+    Good day, {{ request.user.first_name|default:request.user.username }} 👋
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stat-grid">
+  <div class="stat-card balance">
+    <div class="stat-label">Total Balance</div>
+    <div class="stat-value">{{ profile.currency }}{{ total_balance|floatformat:0 }}</div>
+    <div class="stat-trend">All-time net worth</div>
+    <div class="stat-icon">💰</div>
+  </div>
+  <div class="stat-card income">
+    <div class="stat-label">Monthly Income</div>
+    <div class="stat-value">{{ profile.currency }}{{ total_income|floatformat:0 }}</div>
+    <div class="stat-trend">This month</div>
+    <div class="stat-icon">📈</div>
+  </div>
+  <div class="stat-card expense">
+    <div class="stat-label">Monthly Expense</div>
+    <div class="stat-value">{{ profile.currency }}{{ total_expense|floatformat:0 }}</div>
+    <div class="stat-trend">This month</div>
+    <div class="stat-icon">📉</div>
+  </div>
+  <div class="stat-card budget">
+    <div class="stat-label">Budget Used</div>
+    <div class="stat-value" style="color:var(--blue);">{{ budget_used_pct }}%</div>
+    <div style="margin-top:8px;">
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:{{ budget_used_pct }}%;background:{% if budget_used_pct > 90 %}var(--red){% elif budget_used_pct > 70 %}var(--orange){% else %}var(--blue){% endif %};"></div>
+      </div>
+    </div>
+    <div class="stat-icon">🎯</div>
+  </div>
+</div>
+
+<!-- Main Grid -->
+<div class="dashboard-grid">
+
+  <!-- Spending Chart (7 days) -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">7-Day Overview</div>
+        <div class="card-subtitle">Daily income vs expense</div>
+      </div>
+    </div>
+    <canvas id="weekChart" height="160"></canvas>
+  </div>
+
+  <!-- Category Breakdown -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Top Categories</div>
+        <div class="card-subtitle">Expenses this month</div>
+      </div>
+    </div>
+    {% if cat_breakdown %}
+    <div>
+      {% for cat in cat_breakdown %}
+      <div class="cat-row">
+        <div class="cat-dot" style="background:{{ cat.category__color|default:'#888' }};"></div>
+        <div class="cat-name">{{ cat.category__icon }} {{ cat.category__name|default:"Other" }}</div>
+        <div class="cat-amount">{{ profile.currency }}{{ cat.total|floatformat:0 }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;color:var(--text3);padding:40px 0;font-size:0.9rem;">
+      No expenses this month yet.<br>
+      <a href="{% url 'add_transaction' %}" style="color:var(--accent);font-weight:600;margin-top:8px;display:inline-block;">+ Add one</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right Column -->
+  <div style="display:flex;flex-direction:column;gap:20px;">
+
+    <!-- Recent Transactions -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Recent</div>
+        <a href="{% url 'transactions' %}" style="font-size:0.78rem;color:var(--accent);font-weight:600;">View all →</a>
+      </div>
+      <div class="txn-list">
+        {% for txn in recent %}
+        <div class="txn-row">
+          <div class="txn-icon" style="background:{{ txn.category.color|default:'#2a2d35' }}22;">
+            {{ txn.category.icon|default:"💳" }}
+          </div>
+          <div class="txn-details">
+            <div class="txn-title">{{ txn.title }}</div>
+            <div class="txn-meta">{{ txn.date|date:"M d" }} · {{ txn.category.name|default:"—" }}</div>
+          </div>
+          <div class="amount {% if txn.type == 'income' %}amount-income{% else %}amount-expense{% endif %}" style="font-size:0.85rem;">
+            {% if txn.type == 'expense' %}−{% else %}+{% endif %}{{ profile.currency }}{{ txn.amount|floatformat:0 }}
+          </div>
+        </div>
+        {% empty %}
+        <div style="color:var(--text3);font-size:0.875rem;text-align:center;padding:24px 0;">No transactions yet</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Savings Goals -->
+    {% if savings %}
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Savings Goals</div>
+        <a href="{% url 'savings' %}" style="font-size:0.78rem;color:var(--accent);font-weight:600;">Manage →</a>
+      </div>
+      {% for goal in savings %}
+      <div class="savings-item">
+        <div class="savings-icon">{{ goal.icon }}</div>
+        <div class="savings-info">
+          <div class="savings-title">{{ goal.title }}</div>
+          <div class="savings-amount">{{ profile.currency }}{{ goal.current_amount|floatformat:0 }} / {{ profile.currency }}{{ goal.target_amount|floatformat:0 }}</div>
+          <div style="margin-top:5px;" class="progress-bar">
+            <div class="progress-fill" style="width:{{ goal.percentage }}%;background:var(--accent);"></div>
+          </div>
+        </div>
+        <div class="savings-pct">{{ goal.percentage }}%</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- Budget Overview -->
+{% if budgets %}
+<div class="card" style="margin-top:20px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Budget Tracker</div>
+      <div class="card-subtitle">{{ month_name }}</div>
+    </div>
+    <a href="{% url 'budgets' %}" class="btn btn-ghost btn-sm">Manage Budgets</a>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+    {% for b in budgets %}
+    <div>
+      <div class="budget-header">
+        <div class="budget-cat">
+          <span>{{ b.category.icon }}</span>
+          <span style="font-weight:500;">{{ b.category.name }}</span>
+        </div>
+        <div class="budget-pct" style="color:{% if b.percentage > 90 %}var(--red){% elif b.percentage > 70 %}var(--orange){% else %}var(--text2){% endif %};">{{ b.percentage }}%</div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:{{ b.percentage }}%;background:{{ b.category.color }};"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:0.75rem;color:var(--text3);font-family:'DM Mono',monospace;">
+        <span>{{ profile.currency }}{{ b.spent|floatformat:0 }} spent</span>
+        <span>{{ profile.currency }}{{ b.amount|floatformat:0 }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const dailyData = {{ daily_data|safe }};
+const labels = dailyData.map(d => d.date);
+const expenses = dailyData.map(d => d.expense);
+const incomes = dailyData.map(d => d.income);
+
+const ctx = document.getElementById('weekChart').getContext('2d');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [
+      {
+        label: 'Expense',
+        data: expenses,
+        backgroundColor: 'rgba(255,107,107,0.5)',
+        borderColor: 'rgba(255,107,107,0.8)',
+        borderWidth: 1,
+        borderRadius: 6,
+      },
+      {
+        label: 'Income',
+        data: incomes,
+        backgroundColor: 'rgba(74,222,128,0.5)',
+        borderColor: 'rgba(74,222,128,0.8)',
+        borderWidth: 1,
+        borderRadius: 6,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { labels: { color: '#9AA0A6', font: { family: 'Instrument Sans', size: 11 } } }
+    },
+    scales: {
+      x: { ticks: { color: '#5F6368' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { ticks: { color: '#5F6368', callback: v => '₹' + v }, grid: { color: 'rgba(255,255,255,0.04)' } }
+    }
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Savings Goals — SpendWise{% endblock %}
+{% block page_title %}Savings Goals{% endblock %}
+{% block content %}
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><div class="card-title">New Goal</div></div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group"><label class="form-label">Goal Title</label>{{ form.title }}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="form-group"><label class="form-label">Target Amount</label>{{ form.target_amount }}</div>
+        <div class="form-group"><label class="form-label">Saved So Far</label>{{ form.current_amount }}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="form-group"><label class="form-label">Deadline</label>{{ form.deadline }}</div>
+        <div class="form-group"><label class="form-label">Icon</label>{{ form.icon }}</div>
+      </div>
+      <button type="submit" class="btn btn-primary">Create Goal</button>
+    </form>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    {% for goal in goals %}
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+        <div style="width:48px;height:48px;background:var(--bg3);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">{{ goal.icon }}</div>
+        <div style="flex:1;">
+          <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;">{{ goal.title }}</div>
+          {% if goal.deadline %}<div style="font-size:0.78rem;color:var(--text3);">Deadline: {{ goal.deadline|date:"d M Y" }}</div>{% endif %}
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'DM Mono',monospace;font-size:1.2rem;color:var(--accent);">{{ goal.percentage }}%</div>
+          <div style="font-size:0.75rem;color:var(--text3);">complete</div>
+        </div>
+      </div>
+      <div class="progress-bar" style="height:10px;margin-bottom:8px;">
+        <div class="progress-fill" style="width:{{ goal.percentage }}%;background:var(--accent);"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:14px;">
+        <span>{{ profile.currency }}{{ goal.current_amount|floatformat:0 }} saved</span>
+        <span>{{ profile.currency }}{{ goal.target_amount|floatformat:0 }} target</span>
+      </div>
+      <form method="post" action="{% url 'update_savings' goal.pk %}" style="display:flex;gap:8px;">
+        {% csrf_token %}
+        <input type="number" name="amount" class="form-input" placeholder="Update amount" value="{{ goal.current_amount }}" step="0.01">
+        <button type="submit" class="btn btn-primary btn-sm" style="white-space:nowrap;">Update</button>
+      </form>
+    </div>
+    {% empty %}
+    <div class="card" style="text-align:center;padding:60px 40px;">
+      <div style="font-size:3rem;margin-bottom:16px;">🎯</div>
+      <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:8px;">No savings goals yet</div>
+      <div style="color:var(--text3);font-size:0.875rem;">Create your first savings goal to start tracking your progress!</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

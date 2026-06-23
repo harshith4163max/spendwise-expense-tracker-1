@@ -1,0 +1,56 @@
+{% extends 'tracker/base.html' %}
+{% block title %}{{ action }} Transaction — SpendWise{% endblock %}
+{% block page_title %}{{ action }} Transaction{% endblock %}
+
+{% block content %}
+<div style="max-width:600px;margin:0 auto;">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">{{ action }} Transaction</div>
+        <div class="card-subtitle">Fill in the details below</div>
+      </div>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Title</label>
+        {{ form.title }}
+        {% for e in form.title.errors %}<div style="color:var(--red);font-size:0.78rem;margin-top:4px;">{{ e }}</div>{% endfor %}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="form-group">
+          <label class="form-label">Amount ({{ profile.currency }})</label>
+          {{ form.amount }}
+          {% for e in form.amount.errors %}<div style="color:var(--red);font-size:0.78rem;margin-top:4px;">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          {{ form.type }}
+          {% for e in form.type.errors %}<div style="color:var(--red);font-size:0.78rem;margin-top:4px;">{{ e }}</div>{% endfor %}
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          {{ form.category }}
+          {% for e in form.category.errors %}<div style="color:var(--red);font-size:0.78rem;margin-top:4px;">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          {{ form.date }}
+          {% for e in form.date.errors %}<div style="color:var(--red);font-size:0.78rem;margin-top:4px;">{{ e }}</div>{% endfor %}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note (Optional)</label>
+        {{ form.note }}
+      </div>
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <button type="submit" class="btn btn-primary">{{ action }} Transaction</button>
+        <a href="{% url 'transactions' %}" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

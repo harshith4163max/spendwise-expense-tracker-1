@@ -1,0 +1,49 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Budgets — SpendWise{% endblock %}
+{% block page_title %}Budgets{% endblock %}
+{% block content %}
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">Set Budget</div><div class="card-subtitle">{{ month_name }}</div></div>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group"><label class="form-label">Category</label>{{ form.category }}</div>
+      <div class="form-group"><label class="form-label">Budget Amount ({{ profile.currency }})</label>{{ form.amount }}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="form-group"><label class="form-label">Month (1-12)</label>{{ form.month }}</div>
+        <div class="form-group"><label class="form-label">Year</label>{{ form.year }}</div>
+      </div>
+      <button type="submit" class="btn btn-primary">Set Budget</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">{{ month_name }} Budgets</div>
+    </div>
+    {% for b in budgets %}
+    <div style="margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:8px;font-weight:500;">
+          <span>{{ b.category.icon }}</span> {{ b.category.name }}
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.85rem;color:{% if b.percentage > 90 %}var(--red){% elif b.percentage > 70 %}var(--orange){% else %}var(--text2){% endif %};">
+          {{ b.percentage }}%
+        </div>
+      </div>
+      <div class="progress-bar" style="height:10px;">
+        <div class="progress-fill" style="width:{{ b.percentage }}%;background:{{ b.category.color }};"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:0.78rem;color:var(--text3);font-family:'DM Mono',monospace;">
+        <span>Spent: {{ profile.currency }}{{ b.spent|floatformat:0 }}</span>
+        <span>Limit: {{ profile.currency }}{{ b.amount|floatformat:0 }}</span>
+      </div>
+    </div>
+    {% empty %}
+    <div style="text-align:center;color:var(--text3);padding:40px 0;">No budgets set for this month.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

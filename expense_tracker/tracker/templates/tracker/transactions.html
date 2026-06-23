@@ -1,0 +1,118 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Transactions — SpendWise{% endblock %}
+{% block page_title %}Transactions{% endblock %}
+
+{% block extra_head %}
+<style>
+.filter-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; align-items:center; }
+.filter-select, .filter-input { background:var(--bg2); border:1px solid var(--border2); border-radius:8px; padding:8px 14px; color:var(--text); font-size:0.85rem; outline:none; font-family:inherit; }
+.filter-select:focus, .filter-input:focus { border-color:var(--accent); }
+.txn-table-row { transition: background 0.15s; }
+.txn-table-row:hover { background: rgba(255,255,255,0.025); }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Summary -->
+<div class="stat-grid" style="grid-template-columns:1fr 1fr 1fr;">
+  <div class="stat-card income">
+    <div class="stat-label">Total Income</div>
+    <div class="stat-value">{{ profile.currency }}{{ total_income|floatformat:0 }}</div>
+    <div class="stat-icon">📈</div>
+  </div>
+  <div class="stat-card expense">
+    <div class="stat-label">Total Expense</div>
+    <div class="stat-value">{{ profile.currency }}{{ total_expense|floatformat:0 }}</div>
+    <div class="stat-icon">📉</div>
+  </div>
+  <div class="stat-card balance">
+    <div class="stat-label">Net</div>
+    <div class="stat-value">{{ profile.currency }}{{ net_total|floatformat:0 }}</div>
+    <div class="stat-icon">💰</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<form method="get" class="filter-bar">
+  <input type="text" name="search" class="filter-input" placeholder="🔍 Search..." value="{{ filters.search }}" style="flex:1;min-width:160px;">
+  <select name="type" class="filter-select">
+    <option value="">All Types</option>
+    <option value="expense" {% if filters.type == 'expense' %}selected{% endif %}>Expense</option>
+    <option value="income" {% if filters.type == 'income' %}selected{% endif %}>Income</option>
+  </select>
+  <select name="category" class="filter-select">
+    <option value="">All Categories</option>
+    {% for cat in categories %}
+    <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:'s' %}selected{% endif %}>{{ cat.icon }} {{ cat.name }}</option>
+    {% endfor %}
+  </select>
+  <select name="period" class="filter-select">
+    <option value="all" {% if filters.period == 'all' %}selected{% endif %}>All Time</option>
+    <option value="today" {% if filters.period == 'today' %}selected{% endif %}>Today</option>
+    <option value="week" {% if filters.period == 'week' %}selected{% endif %}>Last 7 Days</option>
+    <option value="month" {% if filters.period == 'month' %}selected{% endif %}>This Month</option>
+    <option value="year" {% if filters.period == 'year' %}selected{% endif %}>This Year</option>
+  </select>
+  <button type="submit" class="btn btn-ghost" style="padding:8px 16px;">Filter</button>
+  <a href="{% url 'transactions' %}" class="btn btn-ghost" style="padding:8px 16px;">Clear</a>
+  <a href="{% url 'add_transaction' %}" class="btn btn-primary" style="padding:8px 16px;">＋ Add</a>
+</form>
+
+<!-- Table -->
+<div class="card" style="padding:0;overflow:hidden;">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Transaction</th>
+        <th>Category</th>
+        <th>Date</th>
+        <th>Type</th>
+        <th style="text-align:right;">Amount</th>
+        <th style="text-align:center;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for txn in transactions %}
+      <tr class="txn-table-row">
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="txn-icon" style="background:{{ txn.category.color|default:'#2a2d35' }}22;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+              {{ txn.category.icon|default:"💳" }}
+            </div>
+            <div>
+              <div style="font-weight:500;font-size:0.875rem;">{{ txn.title }}</div>
+              {% if txn.note %}<div style="font-size:0.75rem;color:var(--text3);">{{ txn.note|truncatechars:40 }}</div>{% endif %}
+            </div>
+          </div>
+        </td>
+        <td style="color:var(--text2);font-size:0.85rem;">{{ txn.category.name|default:"—" }}</td>
+        <td style="color:var(--text3);font-size:0.83rem;font-family:'DM Mono',monospace;">{{ txn.date|date:"d M Y" }}</td>
+        <td><span class="badge badge-{{ txn.type }}">{{ txn.type }}</span></td>
+        <td style="text-align:right;">
+          <span class="amount {% if txn.type == 'income' %}amount-income{% else %}amount-expense{% endif %}" style="font-size:0.9rem;">
+            {% if txn.type == 'expense' %}−{% else %}+{% endif %}{{ profile.currency }}{{ txn.amount|floatformat:2 }}
+          </span>
+        </td>
+        <td style="text-align:center;">
+          <div style="display:flex;gap:6px;justify-content:center;">
+            <a href="{% url 'edit_transaction' txn.pk %}" class="btn btn-ghost btn-sm">✏️</a>
+            <form method="post" action="{% url 'delete_transaction' txn.pk %}" style="display:inline;" onsubmit="return confirm('Delete this transaction?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" style="text-align:center;padding:60px;color:var(--text3);">
+          <div style="font-size:2rem;margin-bottom:12px;">📭</div>
+          No transactions found.
+          <br><a href="{% url 'add_transaction' %}" style="color:var(--accent);font-weight:600;margin-top:8px;display:inline-block;">Add your first transaction →</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
