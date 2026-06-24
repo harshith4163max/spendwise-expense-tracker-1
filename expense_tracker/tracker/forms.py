@@ -41,6 +41,12 @@ class ProfileForm(forms.ModelForm):
 
 
 class TransactionForm(forms.ModelForm):
+    category = forms.ModelChoiceField(
+        queryset=Category.objects.none(),
+        empty_label='Select a category',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
     class Meta:
         model = Transaction
         fields = ['title', 'amount', 'type', 'category', 'date', 'note']
@@ -48,7 +54,6 @@ class TransactionForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Grocery shopping'}),
             'amount': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': '0.00', 'step': '0.01'}),
             'type': forms.Select(attrs={'class': 'form-select'}),
-            'category': forms.Select(attrs={'class': 'form-select'}),
             'date': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
             'note': forms.Textarea(attrs={'class': 'form-input', 'rows': 2, 'placeholder': 'Optional note...'}),
         }

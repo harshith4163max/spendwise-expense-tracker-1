@@ -18,6 +18,28 @@ def get_or_create_profile(user):
     return profile
 
 
+def create_default_categories(user):
+    defaults = [
+        ('Food & Dining', '🍔', '#FF6B6B', 'expense'),
+        ('Transport', '🚗', '#45B7D1', 'expense'),
+        ('Housing', '🏠', '#96CEB4', 'expense'),
+        ('Health', '💊', '#4ECDC4', 'expense'),
+        ('Entertainment', '🎮', '#DDA0DD', 'expense'),
+        ('Shopping', '👗', '#F0A500', 'expense'),
+        ('Education', '📚', '#74B9FF', 'expense'),
+        ('Utilities', '💡', '#FFEAA7', 'expense'),
+        ('Clothes', '👕', '#F0A500', 'expense'),
+        ('Salary', '💰', '#55EFC4', 'income'),
+        ('Freelance', '💻', '#A29BFE', 'income'),
+    ]
+    for name, icon, color, ctype in defaults:
+        Category.objects.get_or_create(
+            user=user,
+            name=name,
+            defaults={'icon': icon, 'color': color, 'type': ctype}
+        )
+
+
 def landing(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -31,6 +53,7 @@ def login_view(request):
     if request.method == 'POST' and form.is_valid():
         user = form.get_user()
         login(request, user)
+        create_default_categories(user)
         return redirect('dashboard')
     return render(request, 'tracker/login.html', {'form': form})
 
@@ -42,22 +65,7 @@ def register_view(request):
     if request.method == 'POST' and form.is_valid():
         user = form.save()
         profile = get_or_create_profile(user)
-        # Create default categories
-        defaults = [
-            ('Food & Dining', '🍔', '#FF6B6B', 'expense'),
-            ('Transport', '🚗', '#45B7D1', 'expense'),
-            ('Housing', '🏠', '#96CEB4', 'expense'),
-            ('Health', '💊', '#4ECDC4', 'expense'),
-            ('Entertainment', '🎮', '#DDA0DD', 'expense'),
-            ('Shopping', '👗', '#F0A500', 'expense'),
-            ('Education', '📚', '#74B9FF', 'expense'),
-            ('Utilities', '💡', '#FFEAA7', 'expense'),
-            ('Clothes', '👕', '#F0A500', 'expense'),
-            ('Salary', '💰', '#55EFC4', 'income'),
-            ('Freelance', '💻', '#A29BFE', 'income'),
-        ]
-        for name, icon, color, ctype in defaults:
-            Category.objects.get_or_create(user=user, name=name, defaults={'icon': icon, 'color': color, 'type': ctype})
+        create_default_categories(user)
         login(request, user)
         messages.success(request, f'Welcome to SpendWise, {user.first_name}! 🎉')
         return redirect('dashboard')
